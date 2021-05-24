@@ -57,24 +57,43 @@ function DrawGraph(name) {
             tonnes: +d.Tonnes
         }
     }).then(function(data) {
-
+        console.log(data);
         //removes 2018 as many things were changed in how data was recorded that year
-        dataset = [];
-        for(let i = 0; i < data.length; i++) {
-            if (data[i].year != 2018) {
-                dataset.push(data[i]);
-            }
-        }
-
+        var dataset = filterData(data, function(dataValue) {
+            return dataValue.year != 2018
+        });
+        setupRadioButtons(dataset);
+        
         visualiseData(dataset);
     });
 }
+
+function RemoveVisualization() {
+    d3.select("#svgWrapper").html("");
+}
+
+
+function setupRadioButtons(startDataset) {
+    const dataref = startDataset;
+    d3.selectAll("input[name='Stream']").on("change", function(){
+        RemoveVisualization();
+        var string = this.value;
+        visualiseData(filterData(dataref, function(dataval) {
+            return dataval.stream == string;
+        }))
+    });
+}
+
+function filterData(dataset, lambdaExpression) {
+    return dataset.filter(lambdaExpression);
+}
+
 
 function visualiseData(dataset) {
     var fate = d3.group(dataset, d => d.fate);
     var fateAndYears = d3.rollup(dataset, v => d3.sum(v, d => d.tonnes), d => d.fate, d => d.year);
 
-    var svgWrapper = d3.select("body").append("div").attr("id","svgWrapper");
+    var svgWrapper = d3.select("#svgWrapper");
 
     var fullWidth = 700;
     var fullHeight = 300;
@@ -107,8 +126,8 @@ function visualiseData(dataset) {
 
     var yScale = d3.scaleLinear()
     .domain([0, d3.max(fateAndYears, function(d) {
-        console.log(d[0])
-        console.log(d3.max(Array.from(d[1].values())))
+        //console.log(d[0])
+        //console.log(d3.max(Array.from(d[1].values())))
         return d3.max(Array.from(d[1].values()));
     })])
     .range([height, 0]);
@@ -156,6 +175,7 @@ function visualiseData(dataset) {
 
 }
 function init() {
+    
     DrawGraph("NWRCleaner.csv");
 }
 
