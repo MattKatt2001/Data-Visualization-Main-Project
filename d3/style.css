@@ -1,0 +1,10 @@
+text {
+    font-size: 8px;
+}
+
+.line {
+    fill: none;
+    stroke: slategrey;
+    stroke-width: 0.5;
+}
+

@@ -1,0 +1,31 @@
+<!DOCTYPE html> 
+<html lang="en"> 
+    <head> 
+            
+        <meta charset="utf-8">     
+        <meta name="description" content="Web development">     
+        <meta name="keywords" content="HTML,  CSS,  Java-Script">     
+        <meta name="author" content="clancy walters"> 
+		
+		<link rel="stylesheet" href="style.css">
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+        <script src="stack.js" defer></script>
+        <script src="script.js" defer></script>
+     
+
+
+        <title>Webpage</title>
+    </head> 
+    <body>
+        <h1 id="Title">The D3 Journey starts here...</h1>
+        <div id="radioButtons">
+            <input type="radio" id="Total" name="Stream" value="Total" checked="checked"> Total
+            <input type="radio" id="MSW" name="Stream" value="MSW"> Municipal
+            <input type="radio" id="C&D" name="Stream" value="C&D"> Construction & Demolitition
+            <input type="radio" id="C&I" name="Stream" value="C&I"> Commercial & Industrial
+        </div>
+
+        <div id="svgWrapper"></div> 
+    </body> 
+</html> 
