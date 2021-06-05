@@ -46,9 +46,7 @@ function filterData(dataset, lambdaExpression) {
     return dataset.filter(lambdaExpression);
 }
 
-var filteredDataset; // make it global to pass to stack functions
-var stackdata=[]; //global array for stack data
-var Gline = true; // graph state used to flip graph type
+var filteredDataset; //global to pass to stack functions
 
 //SVG should not be deleted as d3 needs it for transitions between graph types and displayed data
 const fullHeight = 300;
@@ -58,15 +56,13 @@ const xPadding = 60;
 const yPadding = 20;
 
 const chartWidth = fullWidth - 2*xPadding;
-const chartHeight = fullHeight - 2*yPadding;;
-
-var svg;
+const chartHeight = fullHeight - 2*yPadding;
 
 //creates the svg itself and the group structure
 function createSVG() {
     var svgWrapper = d3.select("#svgWrapper");
 
-    svg = svgWrapper.append("svg").attr("width",fullWidth).attr("height",fullHeight).attr("id","svg");
+    var svg = svgWrapper.append("svg").attr("width",fullWidth).attr("height",fullHeight).attr("id","svg");
 
     svg.append("g").attr("id", "background");
 
@@ -75,6 +71,8 @@ function createSVG() {
 
     data.append("g").attr("id", "highlight");
     data.append("g").attr("id", "paths");
+    data.append("g").attr("id", "dots");
+
     data.append("clipPath")
     .attr("id", "graphClip")
     .append("rect")
@@ -114,14 +112,10 @@ function CreateVisualization(name) {
 
         setupRadioButtons(dataset);    
 
-        visualiseData(filteredDataset);
-      //  visualiseData(dataset); moved to radiobuttonsetup to present correct initial graph total otherwise initial graph includes totals
-    });
-}
+        drawBackground(filteredDataset);
 
-//used to delete svg but now deletes svg content
-function RemoveVisualization() {
-    d3.select("g.parent").selectAll("*").remove();
+        lineChart(dataset)
+    });
 }
 
 //handles highlighting line when mouseover
@@ -129,6 +123,7 @@ function handleMouseOverLine(d, i) {
     var path = d.path[0]
 
     var data = d3.select('#' + path.id).attr('d');
+    d3.select('#' + path.id).attr("stroke-width", 3);
     //from https://stackoverflow.com/questions/25384052/convert-svg-path-d-attribute-to-a-array-of-points
     var commands = data.split(/(?=[LMC])/);
     var pointArrays = commands.map(function(d){
@@ -139,17 +134,6 @@ function handleMouseOverLine(d, i) {
         }
         return pairsArray;
     });
-
-    var newdata = []
-    for(var i = 0; i < pointArrays.length; i++) {
-        if (pointArrays[i]-5 < yPadding) { //if highlight is cut off by graph window
-            if (i == 0) {
-
-            } else {
-
-            }
-        }
-    }
 
     var highlight = d3.select("#highlight");
     highlight
@@ -173,19 +157,22 @@ function handleMouseOverLine(d, i) {
     });
 }
 //handles de-highlighting line when mouse 
-function handleMouseOutLine() {
+function handleMouseOutLine(d) {
+    var path = d.path[0]
+
+    d3.select('#' + path.id).attr("stroke-width", 2.5);
     d3.select("#highlight").html("");
 }
 
 //updates the linechart with transitions when different data is displayed
 function updateLineChart(dataset) {
     
-    var fate = d3.group(dataset, d => d.fate);
+    //list of categories
+    var fate = d3.group(dataset, d => d.fate); 
+    //categories with tons grouped by year
     var fateAndYears = d3.rollup(dataset, v => d3.sum(v, d => d.tonnes), d => d.fate, d => d.year);
-    
-    var axisGroup = svg.select("#axis");
-    var dataGroup = svg.select("#data");
 
+    //scale calculation
     var xScale = d3.scaleLinear()
     .domain(d3.extent(dataset, function(d) {
         return d.year;
@@ -198,24 +185,40 @@ function updateLineChart(dataset) {
     })])
     .range([chartHeight, 0]);
 
-    var res = Array.from(fate.keys());
-
+    //color attribution
     var color = d3.scaleOrdinal()
-    .domain(res)
+    .domain(Array.from(fate.keys()))
     .range(d3.schemeSet1);
 
+    //prepares axis
     var xAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.format("d"));
     var yAxis = d3.axisLeft(yScale).ticks(12);
 
-    var data = dataGroup.selectAll("path").data(fateAndYears);
+    //selected the dot groups
+    var dotsg = d3.select("#dots").selectAll(".dot").data(fateAndYears)
+    //selected the linedata
+    var lineData = d3.select("#paths").selectAll("path").data(fateAndYears);
 
-    //remove lines not in data
-    data.exit().transition().duration(100).remove()
+    //selected the circles in the dot groups
+    var dotsEach = dotsg.selectAll("circle").data(function(d) {
+        var arr = nestedMapToArray(d[1]);
+        arr.forEach(function(d_) { d_.push(d[0]) })
+        return arr
+    })
+
+    //gets a div reference
+    var div = d3.select(".tooltip");
+
+    //removes data that is not included
+    lineData.exit().transition().duration(100).remove() //remove lines not in data
+
+    dotsg.exit().selectAll("circle").transition().duration(100).remove() //removes all points from group
 
     //add lines
-    data
+    lineData
     .enter()
     .append("path")
+    .attr("clip-path", "url(#graphClip)")
     .attr("id",function(d, i) {
         return Array.from(fate.keys())[i].replace(/\s/g, '');
     })
@@ -224,13 +227,61 @@ function updateLineChart(dataset) {
         return color(d[0]) 
     })
     .attr("stroke-width", 2.5)
-    .on("click", function(d) { edge_clicked(d); })
+    .on("click", function(d) { handleMouseClickLine(d); })
     .on("mouseover", handleMouseOverLine)
     .on("mouseout", handleMouseOutLine);
-    data = dataGroup.selectAll("path").data(fateAndYears); //redefined to include new paths
 
-    //adjust lines
-    data
+    //add circles
+    dotsEach
+    .enter()
+    .append("circle")
+    .attr("val", function(d){
+        return d[1];
+    })
+    .attr("fate", function(d){
+        return d[2];
+    })
+    .attr("fill", function(d){
+        return color(d[2]) 
+    })
+    .attr("stroke", function(d){
+        return color(d[2]) 
+    })
+    .attr("fill-opacity", 0)
+    .attr("r", 3)
+    .on("mouseover", function(d, i) {
+        d3.select(this).attr("r", 6).attr("fill-opacity", 0.3);
+
+        div.transition()		
+            .duration(200)		
+            .style("opacity", .9);		
+        div	.html(Number.parseFloat(d3.select(this).attr("val")/1000000).toPrecision(3) + "x10<sup>6</sup>")	
+            .style("left", d.x + 5 +  "px")		
+            .style("top", d.y  + "px");	
+    })
+    .on("mouseout", function(d, i) {
+        d3.select(this).attr("r", 3).attr("fill-opacity", 0)
+        div.transition()		
+            .duration(200)		
+            .style("opacity", 0);	
+    }).attr("cx", function(d, i) {
+        return xScale(d[0]) + xPadding; 
+    })
+    .attr("cy", function(d, i) {
+        return yScale(d[1]) + yPadding; 
+    });
+
+    //data gets redefinied as new data has been added
+    lineData = d3.select("#paths").selectAll("path").data(fateAndYears);
+    dotsg = d3.select("#dots").selectAll(".dot").data(fateAndYears)
+    dotsEach = dotsg.selectAll("circle").data(function(d) {
+        var arr = nestedMapToArray(d[1]);
+        arr.forEach(function(d_) { d_.push(d[0]) })
+        return arr
+    })
+
+    //positions lines
+    lineData
     .transition()
     .attr("id",function(d, i) {
         return Array.from(fate.keys())[i].replace(/\s/g, '');
@@ -246,13 +297,27 @@ function updateLineChart(dataset) {
         })
         (vals);
     });
-    
-    axisGroup.select("#x")
+
+    //positions circles
+    dotsg.selectAll("circle").data(function(d) {
+        var arr = nestedMapToArray(d[1]);
+        arr.forEach(function(d_) { d_.push(d[0]) })
+        return arr
+    }).transition()
+    .attr("cx", function(d, i) {
+        return xScale(d[0]) + xPadding; 
+    })
+    .attr("cy", function(d, i) {
+        return yScale(d[1]) + yPadding; 
+    });
+
+    //axis
+    d3.select("#axis").select("#x")
     .transition()
     .attr("transform", "translate(" + xPadding + ", " + (chartHeight + yPadding) + ")")
     .call(xAxis);
 
-    axisGroup.select("#y")
+    d3.select("#axis").select("#y")
     .transition()
     .attr("transform", "translate("+xPadding+"," + yPadding +")")
     .call(yAxis);
@@ -261,12 +326,13 @@ function updateLineChart(dataset) {
 
 //creates the linechart from selected data
 function lineChart(dataset) {
+
+    //list of categories
     var fate = d3.group(dataset, d => d.fate);
+    //categories with tons grouped by year
     var fateAndYears = d3.rollup(dataset, v => d3.sum(v, d => d.tonnes), d => d.fate, d => d.year);
 
-    var axis = svg.select("#axis");
-    var data = svg.select("#data");
-
+    //scale calculation
     var xScale = d3.scaleLinear()
     .domain(d3.extent(dataset, function(d) {
         return d.year;
@@ -275,59 +341,131 @@ function lineChart(dataset) {
 
     var yScale = d3.scaleLinear()
     .domain([0, d3.max(fateAndYears, function(d) {
-        //console.log(d[0])
-        //console.log(d3.max(Array.from(d[1].values())))
         return d3.max(Array.from(d[1].values()));
     })])
     .range([chartHeight, 0]);
 
-    var res = Array.from(fate.keys());
-
+    //color attribution
     var color = d3.scaleOrdinal()
-    .domain(res)
+    .domain(Array.from(fate.keys()))
     .range(d3.schemeSet1);
 
+    //prepares axis
     var xAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.format("d"));
     var yAxis = d3.axisLeft(yScale).ticks(12);
 
-    axis.select("#x")
+    //appends the axis
+    d3.select("#axis").select("#x")
     .attr("transform", "translate(" + xPadding + ", " + (chartHeight + yPadding) + ")")
     .call(xAxis);
 
-    axis.select("#y")
+    d3.select("#axis").select("#y")
     .attr("transform", "translate("+xPadding+"," + yPadding +")")
     .call(yAxis);
 
-    data
-    .selectAll(".line")
+    //selected the linedata
+    var lineData = d3.select("#paths").selectAll("path").data(fateAndYears);
+
+    //creates a div for tooltip
+    var div = d3.select("body").append("div")	
+    .attr("class", "tooltip")				
+    .style("opacity", 0);
+
+    //creates a group for info circles
+    d3.select("#dots")
+    .selectAll("g.dot")
     .data(fateAndYears)
     .enter()
+    .append("g")
+    .attr("class", "dot");
+
+    //selected dot groups
+    var dotsg = d3.select("#dots").selectAll(".dot").data(fateAndYears)
+    //selected the circles in the dot groups
+    var dotsEach = dotsg.selectAll("circle").data(function(d) {
+        var arr = nestedMapToArray(d[1]);
+        arr.forEach(function(d_) { d_.push(d[0]) })
+        return arr
+    })
+
+    //add lines
+    lineData
+    .enter()
     .append("path")
-        .attr("id",function(d, i) {
-            return Array.from(fate.keys())[i].replace(/\s/g, '');
-        })
-        .attr("fill", "none")
-        .attr("stroke", function(d){ 
-            return color(d[0]) 
-        })
-        .attr("stroke-width", 2.5)
-        .attr("d", function(d) {
-            let vals = nestedMapToArray(d[1]);
+    .attr("clip-path", "url(#graphClip)")
+    .attr("id",function(d, i) {
+        return Array.from(fate.keys())[i].replace(/\s/g, '');
+    })
+    .attr("fill", "none")
+    .attr("stroke", function(d){ 
+        return color(d[0]) 
+    })
+    .attr("stroke-width", 2.5)
+    .on("click", function(d) { handleMouseClickLine(d); })
+    .on("mouseover", handleMouseOverLine)
+    .on("mouseout", handleMouseOutLine);
+    lineData = d3.select("#paths").selectAll("path").data(fateAndYears); //redefined to include new paths
 
-            return d3.line()
-            .x(function(d) {
-                return xScale(d[0]) + xPadding; 
-            })
-            .y(function(d) {
-                return yScale(d[1]) + yPadding; 
-            })
-            (vals);
-        })
-        .on("click", function(d) { edge_clicked(d); })
-        .on("mouseover", handleMouseOverLine)
-        .on("mouseout", handleMouseOutLine);
-    
+    //creates appends circles
+    dotsEach
+    .enter()
+    .append("circle")
+    .attr("val", function(d){
+        return d[1];
+    })
+    .attr("fate", function(d){
+        return d[2];
+    })
+    .attr("fill", function(d){
+        return color(d[2]) 
+    })
+    .attr("stroke", function(d){
+        return color(d[2]) 
+    })
+    .attr("fill-opacity", 0)
+    .attr("r", 3)
+    .on("mouseover", function(d, i) {
+        d3.select(this).attr("r", 6).attr("fill-opacity", 0.3);
 
+        div.transition()		
+            .duration(200)		
+            .style("opacity", .9);		
+        div	.html(Number.parseFloat(d3.select(this).attr("val")/1000000).toPrecision(3) + "x10<sup>6</sup>")	
+            .style("left", d.x + 5 +  "px")		
+            .style("top", d.y  + "px");	
+    })
+    .on("mouseout", function(d, i) {
+        d3.select(this).attr("r", 3).attr("fill-opacity", 0)
+        div.transition()		
+            .duration(200)		
+            .style("opacity", 0);	
+    });
+
+    //adjust lines
+    lineData
+    .attr("id",function(d, i) {
+        return Array.from(fate.keys())[i].replace(/\s/g, '');
+    })
+    .attr("d", function(d) {
+        let vals = nestedMapToArray(d[1]);
+        return d3.line()
+        .x(function(d) {
+            return xScale(d[0]) + xPadding; 
+        })
+        .y(function(d) {
+            return yScale(d[1]) + yPadding; 
+        })
+        (vals);
+    });
+
+    //positions circles
+    dotsEach.enter().selectAll("circle")
+    .attr("cx", function(d, i) {
+        return xScale(d[0]) + xPadding; 
+    })
+    .attr("cy", function(d, i) {
+        return yScale(d[1]) + yPadding; 
+    });
 }
 
 //creates the function that runs when a radio button is clicked
@@ -337,7 +475,6 @@ function setupRadioButtons(startDataset) {
 
     //setup on change behaviour
     d3.selectAll("input[name='Stream']").on("change", function(){
-      	RemoveVisualization();
         var string = this.value;
         filteredDataset = filterData(dataref, function(dataval) {
             return dataval.stream == string;
@@ -349,29 +486,26 @@ function setupRadioButtons(startDataset) {
     filteredDataset = filterData(dataref, function(dataval) {
         return dataval.stream == string;
     });
-    
 }
 
 //draws the background currently so is a bit pointless
 //also calls the drawing of linechart
-function visualiseData(dataset) {
-    var background = svg.select("#background");
+function drawBackground() {
+    var background = d3.select("#background");
 
     background.append("rect").attr("width",fullWidth).attr("height",fullHeight).attr("fill","lightgrey");
     background.append("rect").attr("width",chartWidth).attr("height",chartHeight).attr("x",xPadding).attr("y",yPadding).attr("fill","white");
-
-    lineChart(dataset)
 }
 
 //this is where the stacked area chart should be drawn
-function edge_clicked(d) {    
+function handleMouseClickLine(d) {    
     var path = d.path[0]
     console.log("Edge clicked: " + path.id);
     
     //remove lines
-    d3.selectAll("path").filter(function(d) {
+    d3.selectAll("path").remove();
 
-    }).transition().styleTween('fill-opacity', () => d3.interpolateNumber(1, 0)).remove();
+    d3.select("#dots").selectAll(".dot").selectAll("circle").remove()
 
     //add stacked area chart
   }

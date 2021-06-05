@@ -1,7 +1,0 @@
-{
-    "name": "cos30045-main-project",
-    "version": "1.0.0",
-    "dependancies": {
-        "d3": "^6.6.1"
-    }
-}
