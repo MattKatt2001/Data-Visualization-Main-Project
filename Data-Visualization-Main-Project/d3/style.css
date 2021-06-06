@@ -1,0 +1,21 @@
+text {
+  font-size: 8px;
+}
+
+.line {
+  fill: none;
+  stroke: slategrey;
+  stroke-width: 0.5;
+}
+
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 60px;
+  height: 28px;
+  padding: 2px;
+  font: 10px sans-serif;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+}
