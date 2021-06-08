@@ -70,23 +70,14 @@ function StackedData(fate, dataset) {
 
 // a funtion to manage the return to the line graph data
 function returntoline() {
+  
   d3.select("#svgWrapper").html("")
-  createSVG();
-  //setupRadioButtons(dataset);
-  drawBackground(filteredDataset);
-  lineChart(filteredDataset)
-} // end of returntoline
 
+} // end of returntoline
 
 function visualiseStackedData(stackdata) {
 
   d3.select("#svgWrapper").html("") // clear old SVG
-  var fullWidth = 800,
-    fullHeight = 400;
-  var xpadding = 80,
-    ypadding = 40;
-  var width = fullWidth - 2 * xpadding;
-  var height = (fullHeight - 2 * ypadding) - 10;
 
   var svg = d3.select("#svgWrapper")
     .append("svg")
@@ -98,7 +89,7 @@ function visualiseStackedData(stackdata) {
   svg.append("g").attr("id", "background");
   var background = svg.select("#background");
   background.append("rect").attr("width", fullWidth).attr("height", fullHeight).attr("fill", "lightgrey");
-  background.append("rect").attr("width", width).attr("height", height).attr("x", xpadding - 20).attr("y", ypadding).attr("fill", "white");
+  background.append("rect").attr("width", chartWidth).attr("height", chartHeight).attr("x", xPadding).attr("y", yPadding).attr("fill", "white");
 
 
   // now create a stack "stack", define the keys and stack the data
@@ -116,25 +107,25 @@ function visualiseStackedData(stackdata) {
     }), d3.max(stackdata, function(d) {
       return d.year;
     })]) // min and max
-    .range([0, (width)]);
+    .range([0, (chartWidth)]);
 
   //Y axis definition
   var yScale = d3.scaleLinear()
     .domain([0, d3.max(sData[sData.length - 1], function(d) {
       return d[1]
     })])
-    .range([height + ypadding, ypadding]);
+    .range([chartHeight + yPadding, yPadding]);
   // add the axis
   svg.append("g")
-    .attr("transform", "translate(" + (xpadding - 20) + ", 0)")
+    .attr("transform", "translate(" + (xPadding) + ", 0)")
     .call(d3.axisLeft(yScale))
   svg.append("g")
-    .attr("transform", "translate(" + (xpadding - 20) + "," + (height + ypadding) + ")")
+    .attr("transform", "translate(" + (xPadding) + "," + (chartHeight + yPadding) + ")")
     .call(d3.axisBottom(xScale).ticks(9).tickFormat(d3.format("d")));
 
   var area = d3.area()
     .x(function(d) {
-      return xScale(d.data.year) + (xpadding - 20);
+      return xScale(d.data.year) + (xPadding);
     })
     .y0(function(d) {
       return yScale(d[0]);
@@ -153,11 +144,14 @@ function visualiseStackedData(stackdata) {
     .style("fill", function(d, i) {
       return color[i]
     })
+    .style("fill-opacity", 0.4)
     .attr("d", function(d) {
       return area(d);
     })
-    .attr("stroke", "black")
-    .attr("stroke-width", .3)
+    .attr("stroke", function(d, i) {
+      return color[i]
+    })
+    .attr("stroke-width", .75)
     .attr("id", "path");
   //	.attr("stroke-opacity", .2)
 
@@ -165,8 +159,8 @@ function visualiseStackedData(stackdata) {
   // build legend
   for (p = 0; p < StackKeys.length; p++) {
     //	var color = d3.scaleOrdinal().range(d3.schemeSet1);
-    lx = fullWidth - (xPadding + 30);
-    ly = (ypadding + 10) + (25 * p);
+    lx = fullWidth - LegendWidth - xPadding + 10;
+    ly = (yPadding + 10) + (25 * p);
 
     svg.append('rect')
       .attr('x', lx)
@@ -198,20 +192,23 @@ function visualiseStackedData(stackdata) {
       .text(StackKeys[p])
   } // end of legend for loop
 
+
   // axis labels
   svg.append("text") // text label for the x axis
     .style("text-anchor", "middle")
     .style("font-size", "18px")
     .style("fill", "black")
-    .attr("transform", "translate(" + fullWidth / 2 + ", " + (fullHeight - 10) + ")")
+    .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", " + (fullHeight - 7) + ")")
     .text("Year");
+    
 
-  svg.append("text") // text label for the Y axis
+ svg.append("text") // text label for the Y axis
     .style("text-anchor", "middle")
     .style("font-size", "14px")
     .style("fill", "black")
     .attr("transform", "translate(17, " + fullHeight / 2 + ") rotate(270)")
     .text("Tonnes (000's)");
+    
 
 
   // Chart Title
@@ -219,8 +216,9 @@ function visualiseStackedData(stackdata) {
     .style("text-anchor", "middle")
     .style("font-size", "24px")
     .style("fill", "black")
-    .attr("transform", "translate(" + ((fullWidth / 2) - 20) + ", 30)")
+    .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
     .text(SGraphTitle);
+    
 
 
 

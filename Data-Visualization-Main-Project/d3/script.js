@@ -33,7 +33,7 @@ function transpose(dataset) {
   let output = [];
   for (let a = 0; a < colNum; a++) {
     let col = [];
-    for (let i = 0; i < d.length; i++) {
+    for (let i = 0; i < dataset.length; i++) {
       col.push(dataset[i][a]);
     }
     output.push(col);
@@ -47,14 +47,15 @@ function filterData(dataset, lambdaExpression) {
 
 var filteredDataset; //global to pass to stack functions
 
-//SVG should not be deleted as d3 needs it for transitions between graph types and displayed data
-const fullHeight = 300;
-const fullWidth = 700;
+const LegendWidth = 130;
+
+const fullHeight = 600 + LegendWidth;
+const fullWidth = 900;
 
 const xPadding = 60;
-const yPadding = 20;
+const yPadding = 40;
 
-const chartWidth = fullWidth - 2 * xPadding;
+const chartWidth = fullWidth - 2 * xPadding - LegendWidth;
 const chartHeight = fullHeight - 2 * yPadding;
 
 //creates the svg itself and the group structure
@@ -84,6 +85,9 @@ function createSVG() {
 
   svg.select("#axis").append("g").attr("id", "x");
   svg.select("#axis").append("g").attr("id", "y");
+  svg.select("#axis").append("g").attr("id", "titles");
+
+  svg.append("g").attr("id", "legend");
 }
 
 //reads in dataset, instaniates svg and buttons, creates initial graph.
@@ -113,7 +117,7 @@ function CreateVisualization(name) {
 
     drawBackground(filteredDataset);
 
-    lineChart(dataset)
+    lineChart(filteredDataset)
   });
 }
 
@@ -197,7 +201,7 @@ function updateLineChart(dataset) {
 
   //prepares axis
   var xAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.format("d"));
-  var yAxis = d3.axisLeft(yScale).ticks(12);
+  var yAxis = d3.axisLeft(yScale).ticks(12).tickFormat(function(d) {return d/1000; });
 
   //selected the dot groups
   var dotsg = d3.select("#dots").selectAll(".dot").data(fateAndYears)
@@ -335,7 +339,52 @@ function updateLineChart(dataset) {
     .attr("transform", "translate(" + xPadding + "," + yPadding + ")")
     .call(yAxis);
 
+  d3.select("#legend").selectAll("rect").data(Array.from(fate.keys())).join(
+    function(enter) {
+      enter.append("rect")
+      .attr('x', fullWidth - LegendWidth - xPadding + 10)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i);
+      })
+      .attr('width', 15)
+      .attr('height', 15)
+      .attr('fill', function(d) {
+        return color(d);
+      }).transition().duration(250).attr("opacity", 1);
+    }, function(update) {
+      update.transition().duration(250)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i);
+      });
+    }, function(exit) {
+      exit.transition().duration(250).remove().attr("opacity", 0);
+    }
+  );
+
+  d3.select("#legend").selectAll("text").data(Array.from(fate.keys())).join(
+    function(enter) {
+      enter.append("text")
+      .attr('x', fullWidth - LegendWidth - xPadding + 10 + 19)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i) + 12;
+      })
+      .style("text-anchor", "left")
+      .style("font-size", "10px")
+      .style("fill", "black")
+      .text(function(d) {
+        return d;
+      }).transition().duration(250).attr("opacity", 1);
+    }, function(update) {
+      update.transition().duration(250)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i) + 12;
+      });
+    }, function(exit) {
+      exit.transition().duration(250).remove().attr("opacity", 0);
+    }
+  );
 }
+
 
 //creates the linechart from selected data
 function lineChart(dataset) {
@@ -365,7 +414,7 @@ function lineChart(dataset) {
 
   //prepares axis
   var xAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.format("d"));
-  var yAxis = d3.axisLeft(yScale).ticks(12);
+  var yAxis = d3.axisLeft(yScale).ticks(12).tickFormat(function(d) {return d/1000; });
 
   //appends the axis
   d3.select("#axis").select("#x")
@@ -483,6 +532,74 @@ function lineChart(dataset) {
     .attr("cy", function(d, i) {
       return yScale(d[1]) + yPadding;
     });
+
+  d3.select("#legend").selectAll("rect").data(Array.from(fate.keys())).join(
+    function(enter) {
+      enter.append("rect")
+      .attr('x', fullWidth - LegendWidth - xPadding + 10)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i);
+      })
+      .attr('width', 15)
+      .attr('height', 15)
+      .attr('fill', function(d) {
+        return color(d);
+      }).transition().duration(250).attr("opacity", 1);
+    }, function(update) {
+      update.transition().duration(250)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i);
+      });
+    }, function(exit) {
+      exit.transition().duration(250).remove().attr("opacity", 0);
+    }
+  );
+
+  d3.select("#legend").selectAll("text").data(Array.from(fate.keys())).join(
+    function(enter) {
+      enter.append("text")
+      .attr('x', fullWidth - LegendWidth - xPadding + 10 + 19)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i) + 12;
+      })
+      .style("text-anchor", "left")
+      .style("font-size", "10px")
+      .style("fill", "black")
+      .text(function(d) {
+        return d;
+      }).transition().duration(250).attr("opacity", 1);
+    }, function(update) {
+      update.transition().duration(250)
+      .attr('y', function(d, i) {
+        return (yPadding + 10) + (25 * i) + 12;
+      });
+    }, function(exit) {
+      exit.transition().duration(250).remove().attr("opacity", 0);
+    }
+  );
+
+  d3.select("#legend").selectAll("text").data(Array.from(fate.keys())).enter()
+
+  d3.select("#titles").append("text")
+  .style("text-anchor", "middle")
+  .style("font-size", "18px")
+  .style("fill", "black")
+  .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", " + (fullHeight - 7) + ")")
+  .text("Year");
+  
+  d3.select("#titles").append("text")
+  .style("text-anchor", "middle")
+  .style("font-size", "14px")
+  .style("fill", "black")
+  .attr("transform", "translate(17, " + fullHeight / 2 + ") rotate(270)")
+  .text("Tonnes (000's)");
+
+  d3.select("#titles").append("text")
+  .style("text-anchor", "middle")
+  .style("font-size", "24px")
+  .style("fill", "black")
+  .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
+  .text("Waste By Disposal Method");
 }
 
 //creates the function that runs when a radio button is clicked
@@ -498,7 +615,6 @@ function setupRadioButtons(startDataset) {
     })
     updateLineChart(filteredDataset)
   });
-
   //filters the dataset initally to so graph is drawn as just totals
   filteredDataset = filterData(dataref, function(dataval) {
     return dataval.stream == string;
@@ -517,7 +633,6 @@ function drawBackground() {
 //this is where the stacked area chart should be drawn
 function handleMouseClickLine(d) {
   var cat_type = d.path[0].id;
-  //  console.log("Edge clicked: " + path.id);
 
   //remove lines
   d3.selectAll("path").remove();

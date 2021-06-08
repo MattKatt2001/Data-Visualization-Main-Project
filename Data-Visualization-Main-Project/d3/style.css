@@ -1,7 +1,17 @@
 text {
   font-size: 8px;
 }
-
+#radioButtons p {
+  display:inline;
+  font-size: small;
+}
+input {
+  display: inline-block;
+  font-size: small;
+  width: 10px;
+  margin: 0;
+  padding: 0;
+}
 .line {
   fill: none;
   stroke: slategrey;
