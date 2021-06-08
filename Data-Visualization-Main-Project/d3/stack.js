@@ -198,7 +198,7 @@ function visualiseStackedData(stackdata) {
                 .attr("cy", function(d) {
                   return yScale(sData[c][cd][1]);
                 })
-                .attr("transform", "translate(" + (xpadding - 20) + ", 0)")
+                .attr("transform", "translate(" + (xPadding) + ", 0)")
                 .attr("r", 3)
                 .attr("stroke", "blue")
                 .style("fill", "white")
@@ -213,13 +213,16 @@ function visualiseStackedData(stackdata) {
                 .attr('y', (function(d) {
                   return yScale(sData[c][cd][1]);
                 }))
-                .attr("transform", "translate(" + (xpadding - 20) + ", -5)")
+                .attr("transform", "translate(" + (xPadding) + ", -5)")
                 //	.attr("y", 200)
                 .style("font-family", "arial")
                 .style("text-anchor", "middle")
                 .style("font-size", "10px")
                 .style("fill", "black")
-                .text((sData[c][cd].data[sData[c].key]).toFixed(0))
+                .text(function(d) {
+                  console.log(sData[c][cd].data[sData[c].key]);
+                  return (sData[c][cd].data[sData[c].key]).toFixed(0);
+                });
             } // end of for loop to add circle and text to line
           } // end of if this id match to sData key
         } // end of for sData length loop
