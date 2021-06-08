@@ -1,17 +1,17 @@
 var StackKeys = [];
 var SGraphTitle = "";
 
-
+// called from handleMouseClickLine 500
+function GraphStacked(cat_type, filteredDataset) {
+  d3.selectAll("input[name='Stream']").on("click", function() {
+    returnToLine();
+  }); // set the click on radiobutton behaviour
+  StackedData(cat_type, filteredDataset);
+  visualiseStackedData(stackdata);
+}
 
 function StackedData(fate, dataset) {
-
-  // d3.selectAll("input[name='Stream']").on("change", function() {
-  //	returntoline();});
-  d3.selectAll("input[name='Stream']").on("click", function() {
-    returntoline();
-  });
-
-  stackdata = []; // clear Stackdata
+  stackdata = []; // clear Stackdata because we "push" value into stackdata Array we need to clear before we build
 
   //this is temporary until we receive the correct fate from the calling function
   if (fate == "Energyrecovery") {
@@ -20,17 +20,12 @@ function StackedData(fate, dataset) {
     fate = "Long-term storage";
   } // end of if
 
-  //Create Chart SGraphTitle
-  var origin_string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
-  if (origin_string == "MSW") {
-    origin_string = "Minicipal"
-  } else if (origin_string == "C&D") {
-    origin_string = "Construction & Demolition"
-  } else if (origin_string == "C&I") {
-    origin_string = "Commercial & Industrial"
-  }
-
-  SGraphTitle = origin_string + " : " + fate;
+  chartTitle(fate);
+  /*	//Create Chart SGraphTitle
+  	var origin_string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
+  	// expand the shorthand/acronym value to the full description
+  	if (origin_string == "MSW"){origin_string = "Minicipal"} else if (origin_string == "C&D") {origin_string = "Construction & Demolition"} else if (origin_string == "C&I") {origin_string = "Commercial & Industrial"}
+  	SGraphTitle = origin_string + " : " + fate; */
 
   //filter dataset according to fate received
   var fate_stack = (filterData(dataset, function(dataval) {
@@ -52,7 +47,7 @@ function StackedData(fate, dataset) {
     }; // initialise the stack JSON series with year value
     //iterate through the Stack keys  and get values add to JSON series
     for (i = 0; i < StackKeys.length; i++) {
-      tmpval = tmpmap.get(StackKeys[i]);
+      var tmpval = tmpmap.get(StackKeys[i]);
       //console.log(tmpval);
       if (tmpval == null) {
         tmpval = 0;
@@ -69,18 +64,20 @@ function StackedData(fate, dataset) {
 
 
 // a funtion to manage the return to the line graph data
-function returntoline() {
+function returnToLine() {
   d3.select("#svgWrapper").html("")
   createSVG();
   //setupRadioButtons(dataset);
   drawBackground(filteredDataset);
   lineChart(filteredDataset)
-} // end of returntoline
+} // end of returnToLine
 
 
 function visualiseStackedData(stackdata) {
 
   d3.select("#svgWrapper").html("") // clear old SVG
+
+  // Set the parameters for the SVG area
   var fullWidth = 800,
     fullHeight = 400;
   var xpadding = 80,
@@ -104,10 +101,10 @@ function visualiseStackedData(stackdata) {
   // now create a stack "stack", define the keys and stack the data
   var stack = d3.stack().keys(StackKeys); // stack keys
   var sData = stack(stackdata);
-  //console.log(sData);
 
-  var color = ["#4db8ff", "#ff471a", "#b3b3cc", "#3d3d5c", "#44cc00", "#ff751a", "#c44dff", "#1f1f2e", "#998033", "#ffff00", "#ff33ff"];
-  // var color = d3.scaleOrdinal().range(d3.schemeSet1);
+  // color palette
+  var color = d3.schemeSet3;
+  // var color = ["#4db8ff", "#ff471a", "#b3b3cc", "#3d3d5c", "#44cc00", "#ff751a", "#c44dff", "#1f1f2e", "#998033", "#ffff00", "#ff33ff"];
 
   // X Axis definition
   var xScale = d3.scaleLinear()
@@ -146,25 +143,23 @@ function visualiseStackedData(stackdata) {
   var series = svg.selectAll("g.series")
     .data(sData)
     .enter().append("g")
-    .attr("class", "series");
+    .attr("class", "series")
+    .attr("id", function(d) {
+      return "area" + d.key.slice(0, 5);
+    }) // slice to 5 characters to avoid spaces and special chars
+    .attr("stroke-width", .5)
+    .attr("stroke", "black"); // end of Var series
 
   series.append("path")
-    //.style("fill", function(d){return color(d[0])})
     .style("fill", function(d, i) {
       return color[i]
     })
     .attr("d", function(d) {
       return area(d);
-    })
-    .attr("stroke", "black")
-    .attr("stroke-width", .3)
-    .attr("id", "path");
-  //	.attr("stroke-opacity", .2)
-
+    }); // end of series append
 
   // build legend
   for (p = 0; p < StackKeys.length; p++) {
-    //	var color = d3.scaleOrdinal().range(d3.schemeSet1);
     lx = fullWidth - (xPadding + 30);
     ly = (ypadding + 10) + (25 * p);
 
@@ -173,27 +168,80 @@ function visualiseStackedData(stackdata) {
       .attr('y', ly)
       .attr('width', 15)
       .attr('height', 15)
+      .attr("id", function(d) {
+        return StackKeys[p].slice(0, 5);
+      }) // slice the id down to 5 characters, avaids the spaces and special chars
       //  	.attr('stroke', 'black')
       .attr('fill', color[p])
-      .on("mouseover", function(d) {
-        d3.select(this).attr("fill-opacity", .2);
-      })
-      //	.on("mouseover", function(d) {d3.select(this).style("fill", "red");})
-      //	d3.select(this).style("stroke", "green");
-      .on("mouseout", function(d) {
-        d3.select(this).attr("fill-opacity", 1);
-      })
-      //.on("mouseout", function(d) {d3.select(this).style("fill", function(d){return color(d[0])})
-      //	d3.select(this).style("stroke", "black");
-      .on("click", function() {
-        returntoline();
-      })
 
+      .on("mouseover", function(d) {
+        d3.selectAll(".series").attr("fill-opacity", .1)
+        d3.select(this).attr("fill-opacity", .4)
+        d3.select("#area" + this.id).attr("fill-opacity", 1).attr("stroke-width", 1.5).attr("stroke", "blue") // select the path and change opacity
+
+        // sData[9].key.slice(0,5) // how to get the key from each series in sData, match to (this.id)
+        // sData[0][0].data.year // how to get the year from the sData
+
+        for (c = 0; c < sData.length; c++) { // match key to this.id
+          if (this.id == sData[c].key.slice(0, 5)) {
+            // now we know which catagory sData[c]
+            //now loop through years, values and plot_points
+            for (cd = 0; cd < sData[c].length; cd++) { //now get cd (cdata)
+              // sData[c][cd].data.year; // retrieves the year use as cx
+              // sData[c][cd][1]; // get the circle plot point for y (this is the cumulative)
+              // sData[c][cd].data[sData[c].key]; // get value of key for value label.  wrapp JSON var in []
+
+              //now add the circles
+              svg.append("circle")
+                .attr("class", "circbub") // give it a class so we can selectAll to remove
+                .attr("cx", function(d) {
+                  return xScale(parseInt(sData[c][cd].data.year));
+                })
+                .attr("cy", function(d) {
+                  return yScale(sData[c][cd][1]);
+                })
+                .attr("transform", "translate(" + (xpadding - 20) + ", 0)")
+                .attr("r", 3)
+                .attr("stroke", "blue")
+                .style("fill", "white")
+                .attr("fill-opacity", .5)
+
+              // now add the value above the bubble
+              svg.append('text')
+                .attr("class", "circtxt") // give it a class so we can selectAll to remove
+                .attr('x', function(d) {
+                  return xScale(parseInt(sData[c][cd].data.year));
+                })
+                .attr('y', (function(d) {
+                  return yScale(sData[c][cd][1]);
+                }))
+                .attr("transform", "translate(" + (xpadding - 20) + ", -5)")
+                //	.attr("y", 200)
+                .style("font-family", "arial")
+                .style("text-anchor", "middle")
+                .style("font-size", "10px")
+                .style("fill", "black")
+                .text((sData[c][cd].data[sData[c].key]).toFixed(0))
+            } // end of for loop to add circle and text to line
+          } // end of if this id match to sData key
+        } // end of for sData length loop
+      }) // end of mouseover function
+
+      .on("mouseout", function(d) {
+        d3.selectAll(".series").attr("fill-opacity", 1).attr("stroke-width", .5).attr("stroke", "black")
+        d3.select(this).attr("fill-opacity", 1)
+        d3.selectAll(".circbub").remove()
+        d3.selectAll(".circtxt").remove()
+
+      }) // end of mouseout function
+
+    //add the key Legend
     svg.append('text')
       .attr('x', lx + 19)
       .attr('y', ly + 12)
       .style("text-anchor", "left")
-      .style("font-size", "10px")
+      .style("font-size", "8px")
+      .style("font-family", "arial")
       .style("fill", "black")
       .text(StackKeys[p])
   } // end of legend for loop
@@ -201,30 +249,51 @@ function visualiseStackedData(stackdata) {
   // axis labels
   svg.append("text") // text label for the x axis
     .style("text-anchor", "middle")
-    .style("font-size", "18px")
+    .style("font-family", "arial")
+    .style("font-size", "20px")
     .style("fill", "black")
     .attr("transform", "translate(" + fullWidth / 2 + ", " + (fullHeight - 10) + ")")
     .text("Year");
 
+  svg.append("text") // information label
+    .style("text-anchor", "left")
+    .style("font-family", "arial")
+    .style("font-size", "10px")
+    .style("fill", "black")
+    .attr("transform", "translate(" + (fullWidth - 200) + ", " + (fullHeight - 10) + ")")
+    .text("** Hover over Legend for more information");
+
   svg.append("text") // text label for the Y axis
     .style("text-anchor", "middle")
+    .style("font-family", "arial")
     .style("font-size", "14px")
     .style("fill", "black")
     .attr("transform", "translate(17, " + fullHeight / 2 + ") rotate(270)")
-    .text("Tonnes (000's)");
-
+    .text("Tonnes (,000's)");
 
   // Chart Title
   svg.append("text") // text label for the x axis
     .style("text-anchor", "middle")
+    .style("font-family", "arial")
     .style("font-size", "24px")
     .style("fill", "black")
     .attr("transform", "translate(" + ((fullWidth / 2) - 20) + ", 30)")
+    .attr("id", "title")
     .text(SGraphTitle);
 
 
+} // end of Visualise function
 
-
-
-
-} // end of function
+function chartTitle(fate) {
+  //Create Chart SGraphTitle
+  var origin_string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
+  // expand the shorthand/acronym value to the full description
+  if (origin_string == "MSW") {
+    origin_string = "Minicipal"
+  } else if (origin_string == "C&D") {
+    origin_string = "Construction & Demolition"
+  } else if (origin_string == "C&I") {
+    origin_string = "Commercial & Industrial"
+  }
+  SGraphTitle = origin_string + " : " + fate;
+}
