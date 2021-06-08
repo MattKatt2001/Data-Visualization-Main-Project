@@ -632,17 +632,12 @@ function drawBackground() {
 
 //this is where the stacked area chart should be drawn
 function handleMouseClickLine(d) {
-  var cat_type = d.path[0].id;
+//these remove the paths associated with the linechart
+d3.selectAll("path").remove();
 
-  //remove lines
-  d3.selectAll("path").remove();
-
-  d3.select("#dots").selectAll(".dot").selectAll("circle").remove()
-
-  //add stacked area chart
-  StackedData(cat_type, filteredDataset);
-  visualiseStackedData(stackdata);
-
+d3.select("#dots").selectAll(".dot").selectAll("circle").remove()
+  var cat_type = d.path[0].id; // determine the catagory of the line clicked
+  GraphStacked(cat_type, filteredDataset); // go to the stacked graph functions
 }
 
 
