@@ -17,6 +17,8 @@ function prepareResetButton() {
 
     d3.select(this).style("opacity",0);
 
+    d3.select(this).on("click", null);
+    
     //ill add some code to draw linechart here
   })
 }

@@ -276,7 +276,7 @@ function updateLineChart(dataset) {
     })
     .attr("stroke-width", 2.5)
     .on("click", function(d) {
-      handleMouseClickLine(d);
+      handleMouseClickLine(d.path[0].id);
     })
     .on("mouseover", handleMouseOverLine)
     .on("mouseout", handleMouseOutLine);
@@ -379,6 +379,12 @@ function updateLineChart(dataset) {
   d3.select("#legend").selectAll("rect").data(Array.from(fate.keys())).join(
     function(enter) {
       enter.append("rect")
+      .attr("fate", function(d) {
+        return d;
+      })
+      .on("click", function() {
+        handleMouseClickLine(d3.select(this).attr("fate"));
+      })
       .attr('x', fullWidth - LegendWidth - xPadding + 10)
       .attr('y', function(d, i) {
         return (yPadding + 10) + (25 * i);
@@ -502,7 +508,7 @@ function lineChart(dataset) {
     })
     .attr("stroke-width", 2.5)
     .on("click", function(d) {
-      handleMouseClickLine(d);
+      handleMouseClickLine(d.path[0].id);
     })
     .on("mouseover", handleMouseOverLine)
     .on("mouseout", handleMouseOutLine);
@@ -572,6 +578,18 @@ function lineChart(dataset) {
   d3.select("#legend").selectAll("rect").data(Array.from(fate.keys())).join(
     function(enter) {
       enter.append("rect")
+      .attr("fate", function(d) {
+        return d;
+      })
+      .on("click", function() {
+        handleMouseClickLine(d3.select(this).attr("fate"));
+      })
+      .on("mouseover", function() {
+        d3.select(this).attr("opacity", .4)
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("opacity", 1)
+      })
       .attr('x', fullWidth - LegendWidth - xPadding + 10)
       .attr('y', function(d, i) {
         return (yPadding + 10) + (25 * i);
@@ -641,12 +659,10 @@ function lineChart(dataset) {
 
 
 //this is where the stacked area chart should be drawn
-function handleMouseClickLine(d) {
+function handleMouseClickLine(cat_type) {
   //these remove the paths associated with the linechart
   cleanLineChart();
-
-  var cat_type = d.path[0].id; // determine the catagory of the line clicked
-
+  console.log(cat_type)
   prepareResetButton()
   GraphStacked(cat_type, filteredDataset); // go to the stacked graph functions
 
