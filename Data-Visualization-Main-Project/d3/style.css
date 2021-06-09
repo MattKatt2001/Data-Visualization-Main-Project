@@ -5,6 +5,9 @@ text {
   display:inline;
   font-size: small;
 }
+#radioButtons {
+  width: 900px;
+}
 input {
   display: inline-block;
   font-size: small;
@@ -28,4 +31,15 @@ div.tooltip {
   border: 0px;
   border-radius: 8px;
   pointer-events: none;
+}
+
+button {
+  position:relative;
+  float: right;
+  
+}
+
+button p {
+  display:inline;
+  font-size: small;
 }

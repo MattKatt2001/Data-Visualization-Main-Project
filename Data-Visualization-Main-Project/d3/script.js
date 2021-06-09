@@ -46,6 +46,7 @@ function filterData(dataset, lambdaExpression) {
 }
 
 var filteredDataset; //global to pass to stack functions
+var baseDataset;
 
 const LegendWidth = 130;
 
@@ -90,6 +91,41 @@ function createSVG() {
   svg.append("g").attr("id", "legend");
 }
 
+//creates the function that runs when a radio button is clicked
+function setupRadioButtons(startDataset) {
+  const dataref = startDataset;
+  var string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
+
+  //setup on change behaviour
+  d3.selectAll("input[name='Stream']").on("change", function() {
+    var string = this.value;
+    filteredDataset = filterData(dataref, function(dataval) {
+      return dataval.stream == string;
+    })
+    updateLineChart(filteredDataset)
+  });
+  //filters the dataset initally to so graph is drawn as just totals
+  filteredDataset = filterData(dataref, function(dataval) {
+    return dataval.stream == string;
+  });
+}
+
+//draws the background currently so is a bit pointless
+function drawBackground() {
+  var background = d3.select("#background");
+
+  background.append("rect").attr("width", fullWidth).attr("height", fullHeight).attr("fill", "lightgrey");
+  background.append("rect").attr("width", chartWidth).attr("height", chartHeight).attr("x", xPadding).attr("y", yPadding).attr("fill", "white");
+}
+
+function cleanLineChart() {
+  d3.select("#paths").selectAll("path").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#dots").selectAll(".dot").selectAll("circle").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#title").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#legend").selectAll("rect").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#legend").selectAll("text").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+}
+
 //reads in dataset, instaniates svg and buttons, creates initial graph.
 function CreateVisualization(name) {
   var dataset;
@@ -109,7 +145,7 @@ function CreateVisualization(name) {
     var dataset = filterData(data, function(dataValue) {
       return dataValue.year != 2018 //&& dataValue.fate != "Unknown" && dataValue.fate != "Energy recovery";
     });
-
+    baseDataset = dataset;
 
     createSVG();
 
@@ -165,6 +201,7 @@ function handleMouseOverLine(d, i) {
 
     });
 }
+
 //handles de-highlighting line when mouse
 function handleMouseOutLine(d) {
   var path = d.path[0]
@@ -385,7 +422,6 @@ function updateLineChart(dataset) {
   );
 }
 
-
 //creates the linechart from selected data
 function lineChart(dataset) {
 
@@ -595,6 +631,7 @@ function lineChart(dataset) {
   .text("Tonnes (000's)");
 
   d3.select("#titles").append("text")
+  .attr("id", "title")
   .style("text-anchor", "middle")
   .style("font-size", "24px")
   .style("fill", "black")
@@ -602,45 +639,18 @@ function lineChart(dataset) {
   .text("Waste By Disposal Method");
 }
 
-//creates the function that runs when a radio button is clicked
-function setupRadioButtons(startDataset) {
-  const dataref = startDataset;
-  var string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
-
-  //setup on change behaviour
-  d3.selectAll("input[name='Stream']").on("change", function() {
-    var string = this.value;
-    filteredDataset = filterData(dataref, function(dataval) {
-      return dataval.stream == string;
-    })
-    updateLineChart(filteredDataset)
-  });
-  //filters the dataset initally to so graph is drawn as just totals
-  filteredDataset = filterData(dataref, function(dataval) {
-    return dataval.stream == string;
-  });
-}
-
-//draws the background currently so is a bit pointless
-//also calls the drawing of linechart
-function drawBackground() {
-  var background = d3.select("#background");
-
-  background.append("rect").attr("width", fullWidth).attr("height", fullHeight).attr("fill", "lightgrey");
-  background.append("rect").attr("width", chartWidth).attr("height", chartHeight).attr("x", xPadding).attr("y", yPadding).attr("fill", "white");
-}
 
 //this is where the stacked area chart should be drawn
 function handleMouseClickLine(d) {
-//these remove the paths associated with the linechart
-d3.selectAll("path").remove();
+  //these remove the paths associated with the linechart
+  cleanLineChart();
 
-d3.select("#dots").selectAll(".dot").selectAll("circle").remove()
   var cat_type = d.path[0].id; // determine the catagory of the line clicked
+
+  prepareResetButton()
   GraphStacked(cat_type, filteredDataset); // go to the stacked graph functions
+
 }
-
-
 
 function init() {
   CreateVisualization("NWRCleaner.csv");

@@ -4,6 +4,24 @@ var stackdata = []; //used in graph stacked
 var StackKeys = [];
 var SGraphTitle = "";
 
+function cleanSackedAreaChart() { //remove all appended svg elements appart from axis here
+
+}
+
+function prepareResetButton() { 
+  d3.select("#reset").transition().duration(250).style("opacity",1); // show button
+
+  d3.select("#reset").on("click", function() {
+
+    cleanSackedAreaChart();
+
+    d3.select(this).style("opacity",0);
+
+    //ill add some code to draw linechart here
+  })
+}
+
+
 function chartTitle(fate) {
   //Create Chart SGraphTitle
   var origin_string = (document.querySelector('input[name="Stream"]:checked').value); // current check box
@@ -18,17 +36,8 @@ function chartTitle(fate) {
   SGraphTitle = origin_string + " : " + fate;
 } // end of chartTitle
 
-// a funtion to manage the return to the line graph data
-function returnToLine() {
-  console.log("return to line here"); //ill do this bit once the svg isnt being deleted
-
-} // end of returntoline
-
 // called from handleMouseClickLine 500
 function GraphStacked(cat_type, filteredDataset) {
-  d3.selectAll("input[name='Stream']").on("click", function() {
-    returnToLine();
-  }); // set the click on radiobutton behaviour
   StackedData(cat_type, filteredDataset);
   visualiseStackedData(stackdata);
 }
@@ -75,8 +84,6 @@ function StackedData(fate, dataset) {
     }
   }
 }
-
-
 
 function visualiseStackedData(stackdata) {
 
