@@ -5,7 +5,20 @@ var StackKeys = [];
 var SGraphTitle = "";
 
 function cleanSackedAreaChart() { //remove all appended svg elements appart from axis here
-
+  d3.select("#paths").selectAll(".series").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#madness").selectAll("*").remove();
+  d3.select("#title").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0).on("end", function() {
+    d3.select("#titles").append("text")
+    .attr("id", "title")
+    .style("text-anchor", "middle")
+    .style("font-size", "24px")
+    .style("fill", "black")
+    .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
+    .text("Waste By Disposal Method");
+  });
+  d3.select("#legend").selectAll("text").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#legend").selectAll("rect").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#legendMsg").remove()
 }
 
 function prepareResetButton() { 
@@ -13,13 +26,16 @@ function prepareResetButton() {
 
   d3.select("#reset").on("click", function() {
 
-    cleanSackedAreaChart();
-
     d3.select(this).style("opacity",0);
 
     d3.select(this).on("click", null);
+
+    lineView = true;
     
-    //ill add some code to draw linechart here
+    cleanSackedAreaChart()
+
+    setTimeout(() => { updateLineChart(filteredDataset); }, 350); //allow time for transitions to finish
+
   })
 }
 
@@ -62,7 +78,6 @@ function StackedData(fate, dataset) {
   }));
   //create array of maps based on fate filtered data
   var catarray = Array.from(d3.rollup(fate_stack, v => d3.sum(v, d => d.tonnes), d => d.year, d => d.category)); // array the rollup data
-  //console.log(catarray);
 
   StackKeys = Array.from(catarray[0][1].keys()); // load StackKeys from catarray locatio [0][1]
 
@@ -89,21 +104,6 @@ function StackedData(fate, dataset) {
 
 function visualiseStackedData(stackdata) {
 
-  d3.select("#svgWrapper").html("") // clear old SVG
-
-  var svg = d3.select("#svgWrapper")
-    .append("svg")
-    .attr("width", fullWidth)
-    .attr("height", fullHeight)
-    .append("g");
-
-  //add the background boxes
-  svg.append("g").attr("id", "background");
-  var background = svg.select("#background");
-  background.append("rect").attr("width", fullWidth).attr("height", fullHeight).attr("fill", "lightgrey");
-  background.append("rect").attr("width", chartWidth).attr("height", chartHeight).attr("x", xPadding).attr("y", yPadding).attr("fill", "white");
-
-
   // now create a stack "stack", define the keys and stack the data
   var stack = d3.stack().keys(StackKeys); // stack keys
   var sData = stack(stackdata);
@@ -127,13 +127,16 @@ function visualiseStackedData(stackdata) {
       return d[1]
     })])
     .range([chartHeight + yPadding, yPadding]);
-  // add the axis
-  svg.append("g")
-    .attr("transform", "translate(" + (xPadding) + ", 0)")
-    .call(d3.axisLeft(yScale))
-  svg.append("g")
-    .attr("transform", "translate(" + (xPadding) + "," + (chartHeight + yPadding) + ")")
-    .call(d3.axisBottom(xScale).ticks(9).tickFormat(d3.format("d")));
+
+  var yScaletemp = d3.scaleLinear()
+    .domain([0, d3.max(sData[sData.length - 1], function(d) {
+      return d[1]
+    })])
+    .range([chartHeight, 0]);
+    //appends the axis
+  d3.select("#y").selectAll(".tick").transition().duration(250).attr("opacity", 0)
+  d3.select("#axis").select("#y").transition().duration(250)
+    .call(d3.axisLeft(yScaletemp));
 
   var area = d3.area()
     .x(function(d) {
@@ -146,7 +149,7 @@ function visualiseStackedData(stackdata) {
       return yScale(d[1]);
     });
 
-  var series = svg.selectAll("g.series")
+  var series = d3.select("#paths").selectAll(".series")
     .data(sData)
     .enter().append("g")
     .attr("class", "series")
@@ -154,7 +157,8 @@ function visualiseStackedData(stackdata) {
       return "area" + d.key.slice(0, 5);
     }) // slice to 5 characters to avoid spaces and special chars
     .attr("stroke-width", .5)
-    .attr("stroke", "black"); // end of Var series
+    .attr("stroke", "black")
+    .attr("clip-path", "url(#graphClip)"); // end of Var series
 
   series.append("path")
     .style("fill", function(d, i) {
@@ -177,7 +181,7 @@ function visualiseStackedData(stackdata) {
       var lx = fullWidth - LegendWidth - xPadding + 10;
       var ly = (yPadding + 10) + (25 * p);
   
-      svg.append('rect')
+      d3.select("#legend").append('rect')
         .attr('x', lx)
         .attr('y', ly)
         .attr('width', 15)
@@ -206,7 +210,7 @@ function visualiseStackedData(stackdata) {
                 // sData[c][cd].data[sData[c].key]; // get value of key for value label.  wrapp JSON var in []
   
                 //now add the circle dots
-                svg.append("circle")
+                d3.select("#madness").append("circle")
                   .attr("class", "circbub") // give it a class so we can selectAll to remove
                   .attr("cx", function(d) {
                     return xScale(parseInt(sData[c][cd].data.year));
@@ -221,7 +225,7 @@ function visualiseStackedData(stackdata) {
                   .attr("fill-opacity", .5)
   
                 // now add the value above the bubble
-                svg.append('text')
+                d3.select("#madness").append('text')
                   .attr("class", "circtxt") // give it a class so we can selectAll to remove
                   .attr('x', function(d) {
                     return xScale(parseInt(sData[c][cd].data.year));
@@ -236,7 +240,7 @@ function visualiseStackedData(stackdata) {
                   .style("fill", "black")
                   .text((sData[c][cd].data[sData[c].key]).toFixed(0))
                 //add faint cotted lines vertically up to the value
-                svg.append('line')
+                d3.select("#madness").append('line')
                   .attr("class", "lnv")
                   .style("stroke", "grey")
                   .style("stroke-width", .3)
@@ -267,7 +271,7 @@ function visualiseStackedData(stackdata) {
         }) // end of mouseout function
   
       //add the key Legend
-      svg.append('text')
+      d3.select("#legend").append('text')
         .attr('x', lx + 19)
         .attr('y', ly + 12)
         .style("text-anchor", "left")
@@ -289,7 +293,7 @@ function visualiseStackedData(stackdata) {
       if (this.id.slice(4, 9) == sData[c].key.slice(0, 5)) {
         for (var cd = 0; cd < sData[c].length; cd++) { //now get cd (cdata)
           //add dots
-          svg.append("circle")
+          d3.select("#madness").append("circle")
             .attr("class", "dots_graph") // give it a class so we can selectAll to remove
             .attr("cx", function(d) {
               return xScale(parseInt(sData[c][cd].data.year));
@@ -301,8 +305,47 @@ function visualiseStackedData(stackdata) {
             .attr("r", 3)
             .attr("stroke", "blue")
             .style("fill", "white")
+            .on("mouseover", function(d) {
+              d3.select(this).style("fill", "blue").append("svg:title").text(parseInt(d3.select(this).attr("id")).toLocaleString())
+              d3.select(this).transition().duration(110).attr("fill-opacity", 1)
+              d3.selectAll(".series").attr("fill-opacity", .1)
+              d3.select("#area" + kk.slice(0, 5)).attr("fill-opacity", 1).attr("stroke-width", 1.5).attr("stroke", "blue")
+
+              var xpp = d3.select(this).attr('cx');
+              var ypp = d3.select(this).attr('cy');
+
+              d3.select("#madness").append('line')
+                .attr("class", "ln_graph")
+                .style("stroke", "grey")
+                .style("stroke-width", .5)
+                .style("stroke-dasharray", ("3, 3"))
+                .attr("x1", xpp)
+                .attr("y1", function(d) {
+                  return yScale(parseInt(0));
+                })
+                .attr("x2", xpp)
+                .attr("y2", ypp)
+                .attr("transform", "translate(" + (xpadding - 20) + ", 0)")
+
+              d3.select("#madness").append('line')
+                .attr("class", "ln_graph")
+                .style("stroke", "grey")
+                .style("stroke-width", .5)
+                .style("stroke-dasharray", ("3, 3"))
+                .attr("x1", function(d) {
+                  return xScale(parseInt(2006));
+                })
+                .attr("y1", ypp)
+                .attr("x2", xpp)
+                .attr("y2", ypp)
+                .attr("transform", "translate(" + (xpadding - 20) + ", 0)")
+            }) // end of mouseover
+            .on("mouseout", function(d) {
+              d3.selectAll(".dots_graph").transition().duration(80).remove()
+              d3.selectAll(".ln_graph").remove()
+            }) // end of mouseout function
           // now add the value above the bubble
-          svg.append('text')
+          d3.select("#madness").append('text')
             .attr("class", "txt_graph") // give it a class so we can selectAll to remove
             .attr('x', function(d) {
               return xScale(parseInt(sData[c][cd].data.year));
@@ -317,7 +360,7 @@ function visualiseStackedData(stackdata) {
             .style("fill", "black")
             .text((sData[c][cd].data[sData[c].key]).toFixed(0))
 
-          svg.append('line')
+            d3.select("#madness").append('line')
             .attr("class", "ln_graph")
             .style("stroke", "grey")
             .style("stroke-width", .3)
@@ -347,7 +390,9 @@ function visualiseStackedData(stackdata) {
     d3.selectAll(".ln_graph").remove()
   }) // end of mouseout function
   // axis labels
-  svg.append("text") // text label for the x axis
+
+  /*
+  d3.select("#legend").append("text") // text label for the x axis
     .style("text-anchor", "middle")
     .style("font-family", "arial")
     .style("font-size", "20px")
@@ -355,8 +400,10 @@ function visualiseStackedData(stackdata) {
     .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", " + (fullHeight - 7) + ")")
     .attr("id", "title")
     .text("Time (Year)");
+  */
 
-  svg.append("text") // information label
+  d3.select("#titles").append("text") // information label
+  .attr("id", "legendMsg")
     .style("text-anchor", "left")
     .style("font-family", "arial")
     .style("font-size", "10px")
@@ -364,16 +411,20 @@ function visualiseStackedData(stackdata) {
     .attr("transform", "translate(" + (fullWidth - 200) + ", " + (fullHeight - 10) + ")")
     .text("** Hover over Legend for more information");
 
-  svg.append("text") // text label for the Y axis
+    /*
+    d3.select("#legend").append("text") // text label for the Y axis
     .style("text-anchor", "middle")
     .style("font-family", "arial")
     .style("font-size", "14px")
     .style("fill", "black")
     .attr("transform", "translate(17, " + fullHeight / 2 + ") rotate(270)")
     .text("Tonnes (,000's)");
+    */
 
   // Chart Title
-  svg.append("text") // text label for the x axis
+  d3.select("#titles")
+  .append("text") // text label for the x axis
+    .attr("id","title")
     .style("text-anchor", "middle")
     .style("font-family", "arial")
     .style("font-size", "24px")

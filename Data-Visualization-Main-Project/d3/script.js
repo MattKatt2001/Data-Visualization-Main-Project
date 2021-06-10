@@ -45,8 +45,12 @@ function filterData(dataset, lambdaExpression) {
   return dataset.filter(lambdaExpression);
 }
 
+function precise(x, n) {
+  return Number.parseFloat(x).toPrecision(n);
+}
 var filteredDataset; //global to pass to stack functions
 var baseDataset;
+var lineView = true;
 
 const LegendWidth = 130;
 
@@ -73,7 +77,7 @@ function createSVG() {
   data.append("g").attr("id", "highlight");
   data.append("g").attr("id", "paths");
   data.append("g").attr("id", "dots");
-
+  data.append("g").attr("id", "madness")
   data.append("clipPath")
     .attr("id", "graphClip")
     .append("rect")
@@ -102,7 +106,9 @@ function setupRadioButtons(startDataset) {
     filteredDataset = filterData(dataref, function(dataval) {
       return dataval.stream == string;
     })
-    updateLineChart(filteredDataset)
+    if (lineView) {
+      updateLineChart(filteredDataset)
+    }
   });
   //filters the dataset initally to so graph is drawn as just totals
   filteredDataset = filterData(dataref, function(dataval) {
@@ -124,6 +130,7 @@ function cleanLineChart() {
   d3.select("#title").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#legend").selectAll("rect").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#legend").selectAll("text").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#highlight").selectAll("*").transition().duration(250).remove().attr("opacity", 0)
 }
 
 //reads in dataset, instaniates svg and buttons, creates initial graph.
@@ -138,7 +145,7 @@ function CreateVisualization(name) {
       stream: d.Stream,
       management: d.Management,
       fate: d.Fate,
-      tonnes: +d.Tonnes
+      tonnes: precise(+d.Tonnes)
     }
   }).then(function(data) {
     //removes 2018 as many things were changed in how data was recorded that year
@@ -365,15 +372,10 @@ function updateLineChart(dataset) {
       return yScale(d[1]) + yPadding;
     });
 
-  //axis
-  d3.select("#axis").select("#x")
-    .transition()
-    .attr("transform", "translate(" + xPadding + ", " + (chartHeight + yPadding) + ")")
-    .call(xAxis);
 
   d3.select("#axis").select("#y")
     .transition()
-    .attr("transform", "translate(" + xPadding + "," + yPadding + ")")
+    //.attr("transform", "translate(" + xPadding + "," + yPadding + ")")
     .call(yAxis);
 
   d3.select("#legend").selectAll("rect").data(Array.from(fate.keys())).join(
@@ -384,6 +386,12 @@ function updateLineChart(dataset) {
       })
       .on("click", function() {
         handleMouseClickLine(d3.select(this).attr("fate"));
+      })
+      .on("mouseover", function() {
+        d3.select(this).attr("opacity", .4)
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("opacity", 1)
       })
       .attr('x', fullWidth - LegendWidth - xPadding + 10)
       .attr('y', function(d, i) {
@@ -662,10 +670,10 @@ function lineChart(dataset) {
 function handleMouseClickLine(cat_type) {
   //these remove the paths associated with the linechart
   cleanLineChart();
-  console.log(cat_type)
+  lineView = false;
   prepareResetButton()
-  GraphStacked(cat_type, filteredDataset); // go to the stacked graph functions
 
+  setTimeout(() => { GraphStacked(cat_type, filteredDataset) }, 300);
 }
 
 function init() {
