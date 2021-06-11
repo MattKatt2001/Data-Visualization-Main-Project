@@ -673,7 +673,7 @@ function handleMouseClickLine(cat_type) {
   lineView = false;
   prepareResetButton()
 
-  setTimeout(() => { GraphStacked(cat_type, filteredDataset) }, 300);
+  setTimeout(() => { GraphStacked(cat_type, filteredDataset) }, 350);
 }
 
 function init() {

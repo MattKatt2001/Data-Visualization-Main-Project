@@ -34,7 +34,7 @@ function prepareResetButton() {
     
     cleanSackedAreaChart()
 
-    setTimeout(() => { updateLineChart(filteredDataset); }, 350); //allow time for transitions to finish
+    setTimeout(() => { updateLineChart(filteredDataset); }, 400); //allow time for transitions to finish
 
   })
 }
@@ -167,11 +167,14 @@ function visualiseStackedData(stackdata) {
     .attr("d", function(d) {
       return area(d);
     })
+    .attr("opacity", 0)
     .attr("stroke", function(d, i) {
       return color[i]
     })
     .attr("stroke-width", .75)
     .attr("id", "path");
+
+  series.selectAll("path").transition().duration(250).attr("opacity", 1);
   //	.attr("stroke-opacity", .2)
 
   function BuildLegend() {
