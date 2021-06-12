@@ -131,6 +131,7 @@ function cleanLineChart() {
   d3.select("#legend").selectAll("rect").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#legend").selectAll("text").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#highlight").selectAll("*").transition().duration(250).remove().attr("opacity", 0)
+  d3.select("#legendMsg").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
 }
 
 //reads in dataset, instaniates svg and buttons, creates initial graph.
@@ -481,6 +482,7 @@ function lineChart(dataset) {
   //creates a div for tooltip
   var div = d3.select("body").append("div")
     .attr("class", "tooltip")
+    .style("font-size", "15px")
     .style("opacity", 0);
 
   //creates a group for info circles
@@ -546,7 +548,7 @@ function lineChart(dataset) {
       div.transition()
         .duration(200)
         .style("opacity", .9);
-      div.html(Number.parseFloat(d3.select(this).attr("val") / 1000000).toPrecision(3) + "x10<sup>6</sup>")
+      div.html(Number.parseFloat(d3.select(this).attr("val") / 1000000).toPrecision(3) + " million")//"x10<sup>6</sup>")
         .style("left", d.x + 5 + "px")
         .style("top", d.y + "px");
     })
@@ -663,6 +665,16 @@ function lineChart(dataset) {
   .style("fill", "black")
   .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
   .text("Waste By Disposal Method");
+
+  d3.select("#titles").append("text") // information label
+  .attr("id", "legendMsg")
+    .style("text-anchor", "left")
+    .style("font-family", "arial")
+    .style("font-size", "10px")
+    .style("fill", "black")
+    .attr("transform", "translate(" + (fullWidth - 280) + ", " + (fullHeight - 10) + ")")
+    .text("Click lines or legend boxes to view breakdown by waste types");
+
 }
 
 

@@ -8,17 +8,34 @@ function cleanSackedAreaChart() { //remove all appended svg elements appart from
   d3.select("#paths").selectAll(".series").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#madness").selectAll("*").remove();
   d3.select("#title").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0).on("end", function() {
-    d3.select("#titles").append("text")
-    .attr("id", "title")
-    .style("text-anchor", "middle")
-    .style("font-size", "24px")
-    .style("fill", "black")
-    .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
-    .text("Waste By Disposal Method");
+    d3.select("#titles")
+      .append("text")
+      .attr("id", "title")
+      .attr("opacity", 0)
+      .style("text-anchor", "middle")
+      .style("font-size", "24px")
+      .style("fill", "black")
+      .attr("transform", "translate(" + (xPadding + 0.5*chartWidth) + ", 30)")
+      .text("Waste By Disposal Method");
+
+    d3.select("#title").transition().duration(250).attr("opacity", 1)
   });
   d3.select("#legend").selectAll("text").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
   d3.select("#legend").selectAll("rect").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0)
-  d3.select("#legendMsg").remove()
+  d3.select("#legendMsg").attr("opacity", 1).transition().duration(250).remove().attr("opacity", 0).on("end", function() {
+    d3.select("#titles")
+      .append("text") // information label
+      .attr("id", "legendMsg")
+      .attr("opacity", 0)
+      .style("text-anchor", "left")
+      .style("font-family", "arial")
+      .style("font-size", "10px")
+      .style("fill", "black")
+      .attr("transform", "translate(" + (fullWidth - 280) + ", " + (fullHeight - 10) + ")")
+      .text("Click lines or legend boxes to view breakdown by waste types");
+
+    d3.select("#legendMsg").transition().duration(250).attr("opacity", 1)
+  });
 }
 
 function prepareResetButton() { 
@@ -178,6 +195,11 @@ function visualiseStackedData(stackdata) {
   //	.attr("stroke-opacity", .2)
 
   function BuildLegend() {
+
+    //fixes ordering of legend but its super ugly
+    StackKeys.reverse();
+    color = color.slice(0, StackKeys.length)
+    color.reverse();
 
     // build legend
     for (var p = 0; p < StackKeys.length; p++) {
